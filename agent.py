@@ -6,7 +6,7 @@ import os
 from time import perf_counter
 
 from dotenv import load_dotenv
-from livekit import rtc, api
+from livekit import api, rtc
 from livekit.agents import (
     AutoSubscribe,
     JobContext,
@@ -17,15 +17,15 @@ from livekit.agents import (
 )
 from livekit.agents.multimodal import MultimodalAgent
 from livekit.agents.pipeline import VoicePipelineAgent
-from livekit.plugins import deepgram, openai, silero
+from livekit.plugins import openai, silero
 
 load_dotenv(dotenv_path=".env.local")
 
 logger = logging.getLogger("outbound-caller")
 logger.setLevel(logging.INFO)
 
-outbound_trunk_id = os.getenv("SIP_OUTBOUND_TRUNK_ID")
-_default_instructions = """"""
+outbound_trunk_id = os.getenv("LIVEKIT_SIP_OUTBOUND_TRUNK_ID")
+_default_instructions = """<INSTRUCTIONS>"""
 
 
 async def entrypoint(ctx: JobContext):
@@ -39,7 +39,6 @@ async def entrypoint(ctx: JobContext):
     logger.info(f"Dialing: {phone_number} | Room: {ctx.room.name}")
 
     instructions = _default_instructions + """"""
-
     await ctx.api.sip.create_sip_participant(
         api.CreateSIPParticipantRequest(
             room_name=ctx.room.name,
@@ -60,12 +59,15 @@ async def entrypoint(ctx: JobContext):
             return
         elif call_status == "automation":
             pass
-        elif participant.disconnect_reason == \
-            rtc.DisconnectReason.USER_REJECTED:
+        elif (
+            participant.disconnect_reason == rtc.DisconnectReason.USER_REJECTED
+        ):
             logger.info("Status: User Rejected")
             break
-        elif participant.disconnect_reason == \
-            rtc.DisconnectReason.USER_UNAVAILABLE:
+        elif (
+            participant.disconnect_reason
+            == rtc.DisconnectReason.USER_UNAVAILABLE
+        ):
             logger.info("Status: User Unavailable")
             break
         await asyncio.sleep(0.1)
@@ -118,7 +120,9 @@ def run_voice_pipeline_agent(
         llm=openai.LLM(),
         tts=openai.TTS(),
         chat_ctx=initial_ctx,
-        fnc_ctx=CallActions(api=ctx.api, participant=participant, room=ctx.room),
+        fnc_ctx=CallActions(
+            api=ctx.api, participant=participant, room=ctx.room
+        ),
     )
 
     agent.start(ctx.room, participant)
@@ -135,7 +139,9 @@ def run_multimodal_agent(
     )
     agent = MultimodalAgent(
         model=model,
-        fnc_ctx=CallActions(api=ctx.api, participant=participant, room=ctx.room),
+        fnc_ctx=CallActions(
+            api=ctx.api, participant=participant, room=ctx.room
+        ),
     )
     agent.start(ctx.room, participant)
 
@@ -154,7 +160,7 @@ if __name__ == "__main__":
     cli.run_app(
         WorkerOptions(
             entrypoint_fnc=entrypoint,
-            agent_name="outbound-caller",
+            agent_ame="outbound-caller",
             # prewarm_fnc=prewarm,
         )
     )
